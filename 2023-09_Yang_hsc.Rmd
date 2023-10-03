@@ -383,6 +383,7 @@ knitr::kable(markers_all[gene %in% int_goi][,c(1, 2, 6, 7)], caption = "**Differ
 ```
 
 
+
 ```{r, fig.width=10, fig.height=10}
 
 list_int_de <- unique(markers_all[gene %in% int_goi][,gene])
@@ -397,13 +398,136 @@ p1 + p2
 
 
 
+```{r cell_cycle, fig.width=15, fig.height=10}
 
 
-```{r cell_cycle}
+hsc_s <- CellCycleScoring(hsc_s, g2m.features = cc.genes$g2m.genes,
+    s.features = cc.genes$s.genes)
+
+p1 <- FeaturePlot(hsc_s, features = c("S.Score", "G2M.Score"))
+p2 <- DimPlot(hsc_s,  group.by = "Phase")
+
+p1 + p2
+
+```
 
 
-CellCycleScoring
+
+
+```{r long_lasting_hsc_markers, fig.width=10, fig.height=10, eval = F}
+
+goi_long_mark <- c("CD38", "CD45RA", "CD49f", "CD90")
+
+
+p1 <- FeaturePlot(hsc_s, features = goi_long_mark, slot = "data")
+p2 <- DimPlot(hsc_s, label = T)
+
+p1 + p2
+
+```
+
+
+```{r long_lasting_hsc_markers_dif_names_counts_ordered, fig.width=15, fig.height=15}
+
+goi_long_mark <- c("CD38", "PTPRC", "ITGA6", "THY1")
+# goi_long_mark <- c("CD38", "CD45RA", "CD49f", "CD90")
+
+p1 <- FeaturePlot(hsc_s, features = c(goi_long_mark, "CD34", "MPO"), slot = "scale.data", order = T, pt.size = 1, raster.dpi = c(100000, 100000))
+p2 <- DimPlot(hsc_s, label = T)
+
+p1 + p2
+
+```
+
+```{r long_lasting_hsc_markers_dif_names_counts, fig.width=15, fig.height=15}
+
+goi_long_mark <- c("CD38", "PTPRC", "ITGA6", "THY1")
+# goi_long_mark <- c("CD38", "CD45RA", "CD49f", "CD90")
+
+p1 <- FeaturePlot(hsc_s, features = c(goi_long_mark, "MPO", "CD34"), slot = "data", order = F, keep.scale = "all")
+p2 <- DimPlot(hsc_s, label = T)
+
+p1 + p2
+
+```
+
+
+```{r long_lasting_hsc_markers_dif_names_counts_ordered, fig.width=15, fig.height=15}
+
+goi_long_mark <- c("CD38", "PTPRC", "ITGA6", "THY1")
+# goi_long_mark <- c("CD38", "CD45RA", "CD49f", "CD90")
+
+p1 <- FeaturePlot(hsc_s, features = c(goi_long_mark, "CD34"), slot = "data", order = T, keep.scale = "all")
+p2 <- DimPlot(hsc_s, label = T)
+
+p1 + p2
+
+```
+
+```{r long_lasting_hsc_markers_dif_names_counts, fig.width=10, fig.height=15}
+
+goi_long_mark <- c("CD38", "PTPRC", "ITGA6", "THY1")
+# goi_long_mark <- c("CD38", "CD45RA", "CD49f", "CD90")
+
+p1 <- FeaturePlot(hsc_s, features = c(goi_long_mark, "CD34"), slot = "data", order = F, keep.scale = "all")
+p2 <- DimPlot(hsc_s, label = T)
+
+p1 + p2
+
+```
+
+
+
+```{r long_lasting_hsc_markers_dif_names_counts_ordered_mpo, fig.width=10, fig.height=15}
+
+goi_long_mark <- c("CD38", "PTPRC", "ITGA6", "THY1")
+# goi_long_mark <- c("CD38", "CD45RA", "CD49f", "CD90")
+
+p1 <- FeaturePlot(hsc_s, features = c(goi_long_mark, "CD34"), slot = "data", order = T, keep.scale = "all")
+p2 <- DimPlot(hsc_s, label = T)
+
+p1 + p2
+
+```
+
+
+
+
+
+
+
+
+```{r, fig.width=15, fig.height=10}
+
+
+FeaturePlot(subset(hsc_s, subset = seurat_clusters == 8), features = c(goi_long_mark, "CD34") , split.by = "orig.ident", keep.scale = "all")
 
 
 ```
+
+
+
+```{r long_lasting_hsc_markers_dif_names_counts_ordered_mpo, fig.width=10, fig.height=15}
+
+goi_long_mark <- c("CD38", "PTPRC", "ITGA6", "THY1")
+# goi_long_mark <- c("CD38", "CD45RA", "CD49f", "CD90")
+
+p1 <- FeaturePlot(subset(hsc_s, subset = orig.ident != "a"), features = c(goi_long_mark, "MPO", "CD34"), slot = "data", order = T, keep.scale = "all")
+p2 <- DimPlot(hsc_s, label = T)
+
+p1 + p2
+
+```
+
+
+
+```{r, fig.width=15, fig.height=10}
+
+VlnPlot(subset(hsc_s, subset = seurat_clusters == 8), features = c(goi_long_mark) , split.by = "orig.ident")
+
+
+
+```
+
+
 
