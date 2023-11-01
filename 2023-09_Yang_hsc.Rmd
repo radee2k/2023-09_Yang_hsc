@@ -11,6 +11,13 @@ date: '2023-06-22'
 
 <body style="background-color:FloralWhite;">
 
+**Analysis of data obtained with 10X Chromium Fixed RNA Kit, Human Transcriptome.**
+- 4 healthy donors
+- cells
+	1. CD34 enriched
+	2. CD34+ CD45+ sorted
+	3. frozen 
+- 50k cells per donor to Chromium
 ___
 
 # Prepare the workign enviornment:
@@ -161,7 +168,7 @@ hsc_s <- subset(x = hsc_s, subset = nCount_RNA > 900 & nFeature_RNA > 900)
 
 ```
 
-
+### Other features
 ```{r percentage_features}
 hsc_s <- PercentageFeatureSet(hsc_s, pattern = "^MT-", col.name = "percent_mt")
 hsc_s <- PercentageFeatureSet(hsc_s, "^RP[SL]", col.name = "percent_ribo")
@@ -176,9 +183,9 @@ VlnPlot(hsc_s, features = c('nCount_RNA','nFeature_RNA', 'percent_mt', 'percent_
 
 ```
 
-
+### Filtering
 ```{r feature_filtering}
-hsc_s <- subset(x = hsc_s, subset = 100000 > nCount_RNA & percent_mt < 6 & percent_hb < .5 & percent_plat < .5)
+hsc_s <- subset(x = hsc_s, subset = 100000 > nCount_RNA & percent_mt < 8)
 
 ```
 
@@ -382,6 +389,16 @@ knitr::kable(markers_all[gene %in% int_goi][,c(1, 2, 6, 7)], caption = "**Differ
 
 ```
 
+# Plotting gois
+```{r top_upregulated_cluster_8, fig.width=20, fig.height=15}
+
+p1 <- FeaturePlot(hsc_s, features = markers_all[order(avg_log2FC, decreasing = T), .SD[1:19] ,by = cluster][p_val < 5e-2][order(cluster)][cluster == 8, gene], slot = "scale.data", order = T)
+p2 <- DimPlot(hsc_s, label = T) + ggtitle("Clusters") + theme(plot.title = element_text(hjust = 0.5, size = 18))
+
+p1 + p2
+
+```
+
 
 
 ```{r, fig.width=10, fig.height=10}
@@ -540,6 +557,246 @@ VlnPlot(subset(hsc_s, subset = seurat_clusters == 8), features = c(goi_long_mark
 
 
 ```
+
+
+
+2023-10-17
+
+
+```{r Mikkola et al., fig.width=15, fig.height=15}
+
+goi_mikkola <- c("CD34", "RUNX1", "HOXA9", "MLLT3", "MECOM", "HLF")
+# goi_long_mark <- c("CD38", "CD45RA", "CD49f", "CD90")
+
+p1 <- FeaturePlot(hsc_s, features = goi_mikkola, slot = "scale.data", order = T)
+p2 <- DimPlot(hsc_s, label = T) + ggtitle("Clusters") + theme(plot.title = element_text(hjust = 0.5, size = 18)
+)
+
+goi_mikkola_plot <- p1 + p2
+goi_mikkola_plot
+
+# patchwork::
+ggsave("2023-10-23_goi_mikkola_features.tiff", device = "tiff", width = 15, height = 15)
+```
+
+2023-10-25
+```{r 2023-10-25, fig.width=15, fig.height=15, cache = F}
+
+goi_10_25 <- c("SDC1", "SDC2", "SDC3", "SDC4", "SLC22A4", "FLT3", "TPO", "SCF", 
+               "G-CSF", "IL3", "IL6", "NOTCH1", "NOTCH3", "NOTCH4", "FZD1", "FZD2",
+               "FZD3", "FZD4", "FZD5", "FZD6", "FZD7", "Frizzled 8", "FZD9", "FZD10",
+               "CDH1", "CDH2", "CDH3", "CDH4", "CDH5")
+
+p1 <- FeaturePlot(hsc_s, features = goi_10_25, slot = "data", order = T)
+p2 <- DimPlot(hsc_s, label = T) + ggtitle("Clusters") + theme(plot.title = element_text(hjust = 0.5, size = 18)
+)
+
+p1 + p2
+
+
+```
+
+```{}
+
+```
+
+## subclustering cluster 8 - 2DO
+
+
+
+
+# Integrate data from Myers et al.
+
+```{r load myers et al., cache = F}
+myers <- ReadMtx("data/myers_et_al/E-MTAB-9067.aggregated_filtered_counts.mtx",
+        "data/myers_et_al/E-MTAB-9067.aggregated_filtered_counts.mtx_cols",
+        "data/myers_et_al/E-MTAB-9067.aggregated_filtered_counts.mtx_rows")
+```
+
+
+Join gene names with gene symbols and change symbols for Geneids when the grch38 doesn't include any particular ID, mult set to 'first', to exclude duplicates/synonyms. Gene symbols from annotables package.
+
+```{r }
+gt <- data.table("Geneid" = rownames(myers)) # gene title
+
+gt_s <- setDT(grch38[, c("ensgene", "symbol")])
+colnames(gt_s)[1] <- "Geneid"
+
+gt_join <- gt_s[gt, on = .(Geneid), mult = 'first'][symbol %in% NA | symbol == "", symbol := Geneid]
+gt_sym <- gt_join[, symbol]
+```
+
+
+Insert joined gene names and symbols into datasets.
+
+```{r }
+rownames(myers) <- gt_sym
+
+rm(list = c("gt", "gt_s", "gt_sym"))
+```
+
+
+
+```{r myers_seurat}
+myers_s <- CreateSeuratObject(myers, project = "myers")
+rm(myers)
+```
+
+
+## QC and filtering
+```{r myers_s filtering}
+print("nCount_RNA")
+length(WhichCells(myers_s, expression = nCount_RNA > 10000))
+length(WhichCells(myers_s, expression = nCount_RNA < 10000))
+
+
+print("nFeature_RNA")
+length(WhichCells(myers_s, expression = nFeature_RNA > 1000))
+length(WhichCells(myers_s, expression = nFeature_RNA < 1000))
+
+```
+
+
+```{r percentage_features_myers}
+myers_s <- PercentageFeatureSet(myers_s, pattern = "^MT-", col.name = "percent_mt")
+myers_s <- PercentageFeatureSet(myers_s, "^RP[SL]", col.name = "percent_ribo")
+myers_s <- PercentageFeatureSet(myers_s, "^HB[^(P)]", col.name = "percent_hb")
+myers_s <- PercentageFeatureSet(myers_s, "PECAM1|PF4", col.name = "percent_plat")
+```
+
+
+```{r qc_myers, fig.width=5, fig.height=2.5}
+VlnPlot(myers_s, features = c('nCount_RNA','nFeature_RNA'), split.by = "orig.ident", pt.size = .1, raster = F, log = T) +  NoLegend()
+
+```
+
+
+```{r myers_qc_main, fig.width=5, fig.height=5}
+VlnPlot(myers_s, features = c('nCount_RNA','nFeature_RNA', 'percent_mt', 'percent_hb', "percent_ribo", "percent_plat"), split.by = "orig.ident", pt.size = .1, raster = F) +  NoLegend()
+
+```
+
+```{r feature_filtering_myers}
+myers_s <- subset(x = myers_s, subset = nCount_RNA > 10000 & nFeature_RNA > 1000 & percent_mt < 18)
+```
+
+### remove ribosomal genes
+
+
+```{r remove_ribo_myers}
+counts_myers <- GetAssayData(myers_s, assay = "RNA") # get the matrix from the assay data
+ribo_myers <- which(rownames(counts_myers) %like% "^RP[SL]") # find row numbers of ribosomal genes
+
+counts_myers <- counts_myers[-ribo_myers,]
+
+myers_s <- subset(myers_s, features = rownames(counts_myers))
+```
+
+### Removal of genes not present in the 10X panel used with the initial dataset
+
+```{r remove_ribo_myers}
+hsc_counts <- rownames(hsc_s@assays$RNA@counts)
+hsc_counts_names <- rownames(rowSums(hsc_counts) > 0)
+
+
+
+
+# counts_myers <- counts_myers[-hsc_counts_0,]
+myers_s <- subset(myers_s, features = rownames(counts_myers))
+```
+
+
+### Further QC
+
+``` {r umi-features, fig.width = 10, fig.height = 5}
+FeatureScatter(myers_s, "nCount_RNA", "nFeature_RNA", pt.size = 1, plot.cor = T) + scale_x_continuous(labels = scales::scientific) + NoLegend()
+
+```
+
+
+``` {r most_expressed, fig.width = 10, fig.height = 7}
+counts_cells <- myers_s@assays$RNA@counts
+counts_cells <- Matrix::t(Matrix::t(counts_cells)/Matrix::colSums(counts_cells)) * 100
+
+most_expr_cells <- order(apply(counts_cells, 1, median), decreasing = T)[20:1]
+most_expr_counts_cells <- as.matrix(t(counts_cells[most_expr_cells,]))
+
+rm(list = c("counts_cells", "most_expr_cells"))
+par(mar=c(1, 1, 1, 1))
+boxplot(most_expr_counts_cells, cex = 1, las = 1, xlab = "% total count per cell",
+        col = (scales::hue_pal())(20)[20:1], horizontal = TRUE)
+
+```
+
+
+## Clustering analysis before integration
+
+```{r pca_myers}
+myers_s <- SCTransform(myers_s, vst.flavor = "v2", verbose = FALSE) %>%
+  RunPCA(npcs = 30, verbose = FALSE) %>%
+  RunUMAP(reduction = "pca", dims = 1:30, verbose = FALSE)
+  
+```
+
+Data allows to stratify cells according to their origin and diagnosis, however different populations seem to be too mixed.
+
+```{r umap_1_myers,  fig.width= 15, fig.height= 10}
+DimPlot(myers_s, pt.size = 2)
+```
+
+### Label cells with cluster names from Myers et al.
+
+```{r get the clustering data}
+
+clust_myers <- fread("data/myers_et_al/E-MTAB-9067.clusters.tsv", sep = "\t")
+
+
+
+```
+
+
+## Integration
+
+```{r split and integrate patient single-cell data, cache = T, results = 'hide', message = F, error = F, warning = F}
+
+ds_cf_split <- SplitObject(ds_cf, split.by = "pat")
+ds_cf_split <- lapply(X = ds_cf_split, FUN = SCTransform)
+
+features <- SelectIntegrationFeatures(object.list = ds_cf_split, nfeatures = 3000)
+ds_cf_split <- PrepSCTIntegration(object.list = ds_cf_split, anchor.features = features)
+ds_cf_anchors <- FindIntegrationAnchors(object.list = ds_cf_split, anchor.features = features, normalization.method = "SCT")
+
+# k.weight changed to 66 as patient 3133 has the least cells
+ds_cf_comb <- IntegrateData(anchorset = ds_cf_anchors, k.weight = 66,  normalization.method = "SCT")
+```
+
+## Dim Reduc
+```{r, cache = T, results = 'hide', message = F, error = F, warning = F}
+
+DefaultAssay(ds_cf_comb) <- "integrated"
+
+ds_cf_comb <- SCTransform(ds_cf_comb, vst.flavor = "v2", verbose = FALSE) %>%
+  RunPCA( npcs = 30, verbose = FALSE) %>%
+  RunUMAP(reduction = "pca", dims = 1:30, verbose = FALSE)
+  
+```
+
+### UMAP
+```{r, cache = T, fig.width= 15, fig.height= 10}
+DimPlot(ds_cf_comb, group.by = c("pat", "diag", "type", "rep"))
+```
+
+### PCA
+```{r, cache = T, fig.width= 15, fig.height= 10}
+DimPlot(ds_cf_comb, group.by = c("pat", "diag", "type", "rep"), reduction = "pca") + labs(tittle = "PCA")
+```
+
+
+
+
+
+
+
 
 
 
