@@ -680,31 +680,6 @@ VlnPlot(myers_s, features = c('nCount_RNA','nFeature_RNA', 'percent_mt', 'percen
 myers_s <- subset(x = myers_s, subset = nCount_RNA > 10000 & nFeature_RNA > 1000 & percent_mt < 18)
 ```
 
-### remove ribosomal genes
-
-
-```{r remove_ribo_myers}
-counts_myers <- GetAssayData(myers_s, assay = "RNA") # get the matrix from the assay data
-ribo_myers <- which(rownames(counts_myers) %like% "^RP[SL]") # find row numbers of ribosomal genes
-
-counts_myers <- counts_myers[-ribo_myers,]
-
-myers_s <- subset(myers_s, features = rownames(counts_myers))
-```
-
-### Removal of genes not present in the 10X panel used with the initial dataset
-
-```{r remove_ribo_myers}
-hsc_counts <- rownames(hsc_s@assays$RNA@counts)
-hsc_counts_names <- rownames(rowSums(hsc_counts) > 0)
-
-
-
-
-# counts_myers <- counts_myers[-hsc_counts_0,]
-myers_s <- subset(myers_s, features = rownames(counts_myers))
-```
-
 
 ### Further QC
 
@@ -744,6 +719,55 @@ Data allows to stratify cells according to their origin and diagnosis, however d
 DimPlot(myers_s, pt.size = 2)
 ```
 
+
+### remove ribosomal genes - obsolete
+
+```{r remove_ribo_myers, eval = F}
+counts_myers <- GetAssayData(myers_s, assay = "RNA") # get the matrix from the assay data
+ribo_myers <- which(rownames(counts_myers) %like% "^RP[SL]") # find row numbers of ribosomal genes
+
+counts_myers <- counts_myers[-ribo_myers,]
+
+myers_s <- subset(myers_s, features = rownames(counts_myers))
+```
+
+### Removal of genes not present in the 10X panel used with the initial dataset
+
+```{r remove_not_10X}
+panel_10x <- fread("data/gene_list_10X_panel.txt", header = F)
+counts_myers <- GetAssayData(myers_s, assay = "RNA") # get the matrix from the assay data
+# get the indices of genes present in the 10X panel
+in_panel_10x <- which(rownames(myers_s@assays$RNA) %in% panel_10x[, V1])
+
+counts_myers <- counts_myers[in_panel_10x,]
+
+# counts_myers <- counts_myers[-hsc_counts_0,]
+myers_s <- subset(myers_s, features = rownames(counts_myers))
+```
+
+```{r how_many_genes_per_dataset}
+# HSCs dataset
+print("HSC dataset")
+length(which(rownames(hsc_s@assays$RNA) %in% panel_10x[, V1]))
+#Myers et al.
+print("Myers dataset")
+length(which(rownames(myers_s@assays$RNA) %in% panel_10x[, V1]))
+```
+
+## Clustering analysis after removing genes out of the 10X panel
+
+```{r pca_myers}
+myers_s <- SCTransform(myers_s, vst.flavor = "v2", verbose = FALSE) %>%
+  RunPCA(npcs = 30, verbose = FALSE) %>%
+  RunUMAP(reduction = "pca", dims = 1:30, verbose = FALSE)
+```
+
+**Removing of genes resulted in less mapping of worse resolution.**
+
+```{r umap_1_myers,  fig.width= 15, fig.height= 10}
+DimPlot(myers_s, pt.size = 2)
+```
+
 ### Label cells with cluster names from Myers et al.
 
 ```{r get the clustering data}
@@ -757,25 +781,23 @@ clust_myers <- fread("data/myers_et_al/E-MTAB-9067.clusters.tsv", sep = "\t")
 
 ## Integration
 
-```{r split and integrate patient single-cell data, cache = T, results = 'hide', message = F, error = F, warning = F}
+```{r split and integrate patient single-cell with Myers et al. data, cache = T, results = 'hide', message = F, error = F, warning = F}
+integration_list <- list(myers_s, hsc_s)
 
-ds_cf_split <- SplitObject(ds_cf, split.by = "pat")
-ds_cf_split <- lapply(X = ds_cf_split, FUN = SCTransform)
-
-features <- SelectIntegrationFeatures(object.list = ds_cf_split, nfeatures = 3000)
-ds_cf_split <- PrepSCTIntegration(object.list = ds_cf_split, anchor.features = features)
-ds_cf_anchors <- FindIntegrationAnchors(object.list = ds_cf_split, anchor.features = features, normalization.method = "SCT")
+features <- SelectIntegrationFeatures(object.list = integration_list, nfeatures = 3000)
+integration_list <- PrepSCTIntegration(object.list = integration_list, anchor.features = features)
+integration_anchors <- FindIntegrationAnchors(object.list = integration_list, anchor.features = features, normalization.method = "SCT")
 
 # k.weight changed to 66 as patient 3133 has the least cells
-ds_cf_comb <- IntegrateData(anchorset = ds_cf_anchors, k.weight = 66,  normalization.method = "SCT")
+hsc_myers <- IntegrateData(anchorset = integration_anchors, normalization.method = "SCT")
 ```
 
 ## Dim Reduc
 ```{r, cache = T, results = 'hide', message = F, error = F, warning = F}
 
-DefaultAssay(ds_cf_comb) <- "integrated"
+DefaultAssay(hsc_myers) <- "integrated"
 
-ds_cf_comb <- SCTransform(ds_cf_comb, vst.flavor = "v2", verbose = FALSE) %>%
+hsc_myers <- SCTransform(hsc_myers, vst.flavor = "v2", verbose = FALSE) %>%
   RunPCA( npcs = 30, verbose = FALSE) %>%
   RunUMAP(reduction = "pca", dims = 1:30, verbose = FALSE)
   
@@ -783,12 +805,12 @@ ds_cf_comb <- SCTransform(ds_cf_comb, vst.flavor = "v2", verbose = FALSE) %>%
 
 ### UMAP
 ```{r, cache = T, fig.width= 15, fig.height= 10}
-DimPlot(ds_cf_comb, group.by = c("pat", "diag", "type", "rep"))
+DimPlot(hsc_myers, group.by = "orig.ident")
 ```
 
 ### PCA
 ```{r, cache = T, fig.width= 15, fig.height= 10}
-DimPlot(ds_cf_comb, group.by = c("pat", "diag", "type", "rep"), reduction = "pca") + labs(tittle = "PCA")
+DimPlot(hsc_myers, group.by = c("pat", "diag", "type", "rep"), reduction = "pca") + labs(tittle = "PCA")
 ```
 
 
