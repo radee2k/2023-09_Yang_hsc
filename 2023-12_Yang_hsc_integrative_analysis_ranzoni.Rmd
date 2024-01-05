@@ -299,7 +299,7 @@ integration_anchors <- FindIntegrationAnchors(object.list = integration_list, an
 hsc_ranzoni <- IntegrateData(anchorset = integration_anchors, new.assay.name = "integrated", normalization.method = c("LogNormalize", "SCT"))
 ```
 
-```{r}
+```{r, eval = F, include = F}
 p1 <- VlnPlot(hsc_ranzoni@assays$integrated, features =  group.by = "orig.ident", log = T)
 # p2 <- VlnPlot(hsc_ranzoni, features = c("nCount_SCT", "nFeature_SCT"), group.by = "orig.ident")
 p1
