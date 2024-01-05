@@ -1,0 +1,29 @@
+---
+title: "convert_ranzoni_e_to_int"
+output: html_document
+---
+
+**This script attempts to convert scientific format of data from Ranzoni et al., which is in h5ad format and scanpy was unable to export with integers.**
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(data.table)
+library(Seurat)
+library(SeuratDisk)
+
+```
+
+## Load the data
+
+
+```{r}
+integers <- fread("data/ranzoni_et_al/initial_merged_data_matrix/data_not_transposed.csv")
+
+write.table(integers, "data/ranzoni_et_al/initial_merged_data_matrix/matrix.mtx",
+            row.names = F, col.names = F)
+```
+
+
+
