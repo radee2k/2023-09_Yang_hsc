@@ -73,7 +73,7 @@ fonts <- list(
 # knitr::opts_chunk$set(knitr.chunk.dev = 'svglite')
 # knitr::opts_chunk$set(dev = 'svglite', system_fonts = fonts)
 knitr::opts_chunk$set(dev = 'svglite', dev.args = list(system_fonts = fonts),
-                      cache.path = "2023-09_Yang_hsc/gfm/", cache = F,
+                      cache.path = "2023-12_Yang_hsc_integrative_analysis_ranzoni_files/gfm", cache = F,
                       cache.lazy = FALSE) # cache of a github_document doesn't work if the path to the gfm folder is not provided!!!
 
 # knitr::opts_chunk$set(cache.extra = 1) # RESETS CACHE
@@ -85,7 +85,7 @@ knitr::opts_chunk$set(dev = 'svglite', dev.args = list(system_fonts = fonts),
 
 ### Load HSCs data
 
-```{r}
+```{r, warning=F, message = F}
 hsc_s <- LoadH5Seurat("data/hsc_final.h5Seurat")
 ```
 
@@ -403,14 +403,14 @@ FeaturePlot(hsc_s, features = c("ITGA2B", "VWF"), pt.size = 1, label = T, label.
 ```
 
 ###### Granulocytes
-```{r, fig.width= 10, fig.height= 5}
+```{r, fig.width= 7, fig.height= 8}
 # colors <- c(hue_pal(h = c(50,300), l = 70)(8), "green", "pink", "red")
 
 FeaturePlot(hsc_s, features = c("IL5RA", "CXCR2", "ANPEP", "ITGB2"), pt.size = 1, label = T, label.size = 4, order = T, raster = T)
 ```
 
 ###### B-cells and pro-B-cells
-```{r, fig.width= 10, fig.height= 5}
+```{r, fig.width= 7, fig.height= 8}
 # colors <- c(hue_pal(h = c(50,300), l = 70)(8), "green", "pink", "red")
 
 FeaturePlot(hsc_s, features = c("CD19", "MS4A1", "CD24"), pt.size = 1, label = T, label.size = 4, order = T, raster = T)
@@ -425,9 +425,14 @@ FeaturePlot(hsc_s, features = c("CD19", "MS4A1", "CD24"), pt.size = 1, label = T
 FeaturePlot(hsc_s, features = c("CD7", "NCAM1"), pt.size = 1, label = T, label.size = 4, order = T)
 ```
 
+```{r}
+knitr::knit_exit()
+```
+
+
 
 #### PCA
-```{r, cache = T, fig.width= 15, fig.height= 10, eval = F, include = F}
+```{r, cache = T, fig.width= 15, fig.height= 10}
 DimPlot(hsc_ranzoni, group.by = "orig.ident", reduction = "pca") + labs(tittle = "PCA")
 ```
 

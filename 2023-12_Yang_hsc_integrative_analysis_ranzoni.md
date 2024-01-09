@@ -70,7 +70,7 @@ fonts <- list(
 # knitr::opts_chunk$set(knitr.chunk.dev = 'svglite')
 # knitr::opts_chunk$set(dev = 'svglite', system_fonts = fonts)
 knitr::opts_chunk$set(dev = 'svglite', dev.args = list(system_fonts = fonts),
-                      cache.path = "2023-09_Yang_hsc/gfm/", cache = F,
+                      cache.path = "2023-12_Yang_hsc_integrative_analysis_ranzoni_files/gfm", cache = F,
                       cache.lazy = FALSE) # cache of a github_document doesn't work if the path to the gfm folder is not provided!!!
 
 # knitr::opts_chunk$set(cache.extra = 1) # RESETS CACHE
@@ -79,55 +79,11 @@ knitr::opts_chunk$set(dev = 'svglite', dev.args = list(system_fonts = fonts),
 # plan()
 ```
 
-### Load data
+### Load HSCs data
 
 ``` r
 hsc_s <- LoadH5Seurat("data/hsc_final.h5Seurat")
 ```
-
-    ## Validating h5Seurat file
-
-    ## Initializing RNA with data
-
-    ## Adding counts for RNA
-
-    ## Adding miscellaneous information for RNA
-
-    ## Initializing SCT with data
-
-    ## Adding counts for SCT
-
-    ## Adding scale.data for SCT
-
-    ## Adding variable feature information for SCT
-
-    ## Adding miscellaneous information for SCT
-
-    ## Adding reduction pca
-
-    ## Adding cell embeddings for pca
-
-    ## Adding feature loadings for pca
-
-    ## Adding miscellaneous information for pca
-
-    ## Adding reduction umap
-
-    ## Adding cell embeddings for umap
-
-    ## Adding miscellaneous information for umap
-
-    ## Adding graph SCT_nn
-
-    ## Adding graph SCT_snn
-
-    ## Adding command information
-
-    ## Adding cell-level metadata
-
-    ## Adding miscellaneous information
-
-    ## Adding tool-specific results
 
 ### Integrate data from ranzoni et al.
 
@@ -186,6 +142,8 @@ table(colnames(ranzoni_s) == ranz_meta$CELL_NAME)
     ## TRUE 
     ## 4504
 
+#### Add the metadata to the SeuratObject
+
 ``` r
 ranzoni_s$annotation <- ranz_meta$annotation
 ranzoni_s$cluster_ranz <- ranz_meta$Cluster
@@ -237,13 +195,13 @@ ranzoni_s <- PercentageFeatureSet(ranzoni_s, "PECAM1|PF4", col.name = "percent_p
 ```
 
 ``` r
-VlnPlot(ranzoni_s, features = c('nCount_RNA','nFeature_RNA'), pt.size = .1, raster = F, log = T) +  NoLegend()
+VlnPlot(ranzoni_s, features = c('nCount_RNA','nFeature_RNA'), pt.size = 0, raster = F, log = T) +  NoLegend()
 ```
 
 ![](2023-12_Yang_hsc_integrative_analysis_ranzoni_files/figure-gfm/qc_ranzoni-1.svg)<!-- -->
 
 ``` r
-VlnPlot(ranzoni_s, features = c('nCount_RNA','nFeature_RNA', 'percent_mt', 'percent_hb', "percent_ribo", "percent_plat"), pt.size = .1, raster = F) +  NoLegend()
+VlnPlot(ranzoni_s, features = c('nCount_RNA','nFeature_RNA', 'percent_mt', 'percent_hb', "percent_ribo", "percent_plat"), pt.size = 0, raster = F) +  NoLegend()
 ```
 
 ![](2023-12_Yang_hsc_integrative_analysis_ranzoni_files/figure-gfm/ranzoni_qc_main-1.svg)<!-- -->
@@ -268,7 +226,7 @@ most_expr_cells <- order(apply(counts_cells, 1, median), decreasing = T)[20:1]
 most_expr_counts_cells <- as.matrix(t(counts_cells[most_expr_cells,]))
 
 rm(list = c("counts_cells", "most_expr_cells"))
-par(mar=c(1, 1, 1, 1))
+par(mar=c(5, 6, 1, 2))
 boxplot(most_expr_counts_cells, cex = 1, las = 1, xlab = "% total count per cell",
         col = (scales::hue_pal())(20)[20:1], horizontal = TRUE)
 ```
@@ -283,8 +241,7 @@ ranzoni_s <- SCTransform(ranzoni_s, vst.flavor = "v2", verbose = FALSE) %>%
   RunUMAP(reduction = "pca", dims = 1:30, verbose = FALSE)
 ```
 
-Data allows to stratify cells according to their origin and diagnosis,
-however different populations seem to be too mixed.
+Data allows to stratify cells according to their identity.
 
 ``` r
 DimPlot(ranzoni_s, pt.size = 2, group.by = "annotation")
@@ -351,7 +308,8 @@ ranzoni_s <- SCTransform(ranzoni_s, vst.flavor = "v2", verbose = FALSE) %>%
   RunUMAP(reduction = "pca", dims = 1:30, verbose = FALSE)
 ```
 
-**Removing of genes resulted in less mapping of worse resolution.**
+**Removing of genes resulted in mapping of negligibly worse
+resolution.**
 
 ``` r
 DimPlot(ranzoni_s, pt.size = 2, group.by = "annotation")
@@ -368,13 +326,15 @@ features <- SelectIntegrationFeatures(object.list = integration_list, nfeatures 
 integration_list <- PrepSCTIntegration(object.list = integration_list, anchor.features = features)
 integration_anchors <- FindIntegrationAnchors(object.list = integration_list, anchor.features = features, normalization.method = "SCT")
 
-# k.weight changed to 66 as patient 3133 has the least cells
+
 hsc_ranzoni <- IntegrateData(anchorset = integration_anchors, new.assay.name = "integrated", normalization.method = c("LogNormalize", "SCT"))
 ```
 
 ``` r
-p1 <- VlnPlot(hsc_ranzoni, features = c("nCount_RNA", "nFeature_RNA"), group.by = "orig.ident", log = T, slot = "scale.data")
-p2 <- VlnPlot(hsc_ranzoni, features = c("nCount_SCT", "nFeature_SCT"), group.by = "orig.ident", slot = "scale.data")
+p1 <- VlnPlot(hsc_ranzoni, features = c("nCount_RNA", "nFeature_RNA"), group.by = "orig.ident", 
+              log = T, slot = "scale.data", pt.size = 0)
+p2 <- VlnPlot(hsc_ranzoni, features = c("nCount_SCT", "nFeature_SCT"), group.by = "orig.ident", 
+              slot = "scale.data", pt.size = 0)
 
 ggarrange(p1, p2, ncol = 1)
 ```
@@ -397,8 +357,9 @@ hsc_ranzoni <-  ScaleData(hsc_ranzoni) %>%
 ```
 
 ``` r
-p1 <- VlnPlot(hsc_ranzoni, features = c("nCount_RNA", "nFeature_RNA"), group.by = "orig.ident", log = T)
-p2 <- VlnPlot(hsc_ranzoni, features = c("nCount_SCT", "nFeature_SCT"), group.by = "orig.ident")
+p1 <- VlnPlot(hsc_ranzoni, features = c("nCount_RNA", "nFeature_RNA"), group.by = "orig.ident", 
+              log = T, pt.size = 0)
+p2 <- VlnPlot(hsc_ranzoni, features = c("nCount_SCT", "nFeature_SCT"), group.by = "orig.ident", pt.size = 0)
 
 ggarrange(p1, p2, ncol = 1)
 ```
@@ -406,27 +367,6 @@ ggarrange(p1, p2, ncol = 1)
 ![](2023-12_Yang_hsc_integrative_analysis_ranzoni_files/figure-gfm/unnamed-chunk-8-1.svg)<!-- -->
 
 #### UMAP
-
-``` r
-annot_hsc_ranz <- as.data.table(hsc_ranzoni@meta.data$annotation)
-annot_hsc_ranz[V1 %in% NA, V1 := "Yang"]
-hsc_ranzoni@meta.data$annotation <- annot_hsc_ranz$V1
-
-cluster_hsc_ranz <- as.data.table(hsc_ranzoni@meta.data$seurat_clusters)
-cluster_hsc_ranz[V1 %in% NA, V1 := "Ranzoni"]
-hsc_ranzoni@meta.data$seurat_clusters <- cluster_hsc_ranz$V1
-
-order <- unique(hsc_ranzoni@meta.data$annotation)
-
-DimPlot(hsc_ranzoni, group.by = c("seurat_clusters", "annotation"), pt.size = 2, order = order, 
-        label = T, repel = T, label.size = 6, label.box = T) 
-```
-
-![](2023-12_Yang_hsc_integrative_analysis_ranzoni_files/figure-gfm/unnamed-chunk-9-1.svg)<!-- -->
-
-``` r
-# LabelClusters(umap_hsc_ranz, id =  color = unique(ggplot_build(umap_hsc_ranz)$data[[1]]$colour), size = 5, repel = T,  box.padding = 1)
-```
 
 **DIfferent color scheme**
 
@@ -447,6 +387,20 @@ c25 <- c(
   "darkorange4", "brown"
 )
 
+
+# Annotate Yang's HSCs
+annot_hsc_ranz <- as.data.table(hsc_ranzoni@meta.data$annotation)
+annot_hsc_ranz[V1 %in% NA, V1 := "Yang"]
+hsc_ranzoni@meta.data$annotation <- annot_hsc_ranz$V1
+
+cluster_hsc_ranz <- as.data.table(hsc_ranzoni@meta.data$seurat_clusters)
+cluster_hsc_ranz[V1 %in% NA, V1 := "Ranzoni"]
+hsc_ranzoni@meta.data$seurat_clusters <- cluster_hsc_ranz$V1
+
+
+order <- unique(hsc_ranzoni@meta.data$annotation)
+
+
 DimPlot(hsc_ranzoni, group.by = c("seurat_clusters", "annotation"), pt.size = 2, order = order, 
         label = T, repel = T, label.size = 5, label.box = T,
         cols = c25) 
@@ -454,19 +408,48 @@ DimPlot(hsc_ranzoni, group.by = c("seurat_clusters", "annotation"), pt.size = 2,
 
 ![](2023-12_Yang_hsc_integrative_analysis_ranzoni_files/figure-gfm/unnamed-chunk-10-1.svg)<!-- -->
 
-#### PCA
+##### Validation of some of the overlaps
+
+###### Megakaryocytes
 
 ``` r
-DimPlot(hsc_ranzoni, group.by = "orig.ident", reduction = "pca") + labs(tittle = "PCA")
+# colors <- c(hue_pal(h = c(50,300), l = 70)(8), "green", "pink", "red")
+
+FeaturePlot(hsc_s, features = c("ITGA2B", "VWF"), pt.size = 1, label = T, label.size = 4, order = T, raster = T)
 ```
 
 ![](2023-12_Yang_hsc_integrative_analysis_ranzoni_files/figure-gfm/unnamed-chunk-11-1.svg)<!-- -->
 
-``` r
-colors <- c(hue_pal(h = c(50,300), l = 70)(8), "green", "pink", "red")
+###### Granulocytes
 
-hsc_ranzoni$hsc_clust <- c(Idents(hsc_s), Idents(ranzoni_s))
-DimPlot(hsc_ranzoni, group.by = "hsc_clust", pt.size = 1, cols = colors, label = T, label.size = 12) + labs(title = "Integrative analsis with ranzoni et al.")
+``` r
+# colors <- c(hue_pal(h = c(50,300), l = 70)(8), "green", "pink", "red")
+
+FeaturePlot(hsc_s, features = c("IL5RA", "CXCR2", "ANPEP", "ITGB2"), pt.size = 1, label = T, label.size = 4, order = T, raster = T)
 ```
 
 ![](2023-12_Yang_hsc_integrative_analysis_ranzoni_files/figure-gfm/unnamed-chunk-12-1.svg)<!-- -->
+
+###### B-cells and pro-B-cells
+
+``` r
+# colors <- c(hue_pal(h = c(50,300), l = 70)(8), "green", "pink", "red")
+
+FeaturePlot(hsc_s, features = c("CD19", "MS4A1", "CD24"), pt.size = 1, label = T, label.size = 4, order = T, raster = T)
+```
+
+![](2023-12_Yang_hsc_integrative_analysis_ranzoni_files/figure-gfm/unnamed-chunk-13-1.svg)<!-- -->
+
+###### NK cells
+
+``` r
+# colors <- c(hue_pal(h = c(50,300), l = 70)(8), "green", "pink", "red")
+
+FeaturePlot(hsc_s, features = c("CD7", "NCAM1"), pt.size = 1, label = T, label.size = 4, order = T)
+```
+
+![](2023-12_Yang_hsc_integrative_analysis_ranzoni_files/figure-gfm/unnamed-chunk-14-1.svg)<!-- -->
+
+``` r
+knitr::knit_exit()
+```
