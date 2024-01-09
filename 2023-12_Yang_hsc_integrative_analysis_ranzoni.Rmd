@@ -186,12 +186,12 @@ ranzoni_s <- PercentageFeatureSet(ranzoni_s, "PECAM1|PF4", col.name = "percent_p
 ```
 
 
-```{r qc_ranzoni, fig.width=5, fig.height=2.5, cache=F}
+```{r qc_ranzoni, fig.width=7, fig.height=2.5, cache=F}
 VlnPlot(ranzoni_s, features = c('nCount_RNA','nFeature_RNA'), pt.size = 0, raster = F, log = T) +  NoLegend()
 ```
 
 
-```{r ranzoni_qc_main, fig.width=5, fig.height=5, cache=F}
+```{r ranzoni_qc_main, fig.width=7, fig.height=5, cache=F}
 VlnPlot(ranzoni_s, features = c('nCount_RNA','nFeature_RNA', 'percent_mt', 'percent_hb', "percent_ribo", "percent_plat"), pt.size = 0, raster = F) +  NoLegend()
 ```
 
@@ -330,14 +330,6 @@ hsc_ranzoni <-  ScaleData(hsc_ranzoni) %>%
   RunPCA(npcs = 30, verbose = FALSE) %>%
   RunUMAP(reduction = "pca", dims = 1:30, verbose = FALSE)
   
-```
-
-```{r, fig.width=15, fig.height=15, cache=FALSE}
-p1 <- VlnPlot(hsc_ranzoni, features = c("nCount_RNA", "nFeature_RNA"), group.by = "orig.ident", 
-              log = T, pt.size = 0)
-p2 <- VlnPlot(hsc_ranzoni, features = c("nCount_SCT", "nFeature_SCT"), group.by = "orig.ident", pt.size = 0)
-
-ggarrange(p1, p2, ncol = 1)
 ```
 
 #### UMAP
