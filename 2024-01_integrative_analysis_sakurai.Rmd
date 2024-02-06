@@ -65,20 +65,21 @@ theme_update(
 )
 
 # That's not necessary (rmarkdown sets its directory as the one the .Rmd file is in.)
-wd <- "/disk2/user/radgro/projects/2023-09_Yang_hsc/2024-01_integrative_analysis_sakurai"
+wd <- "/disk2/user/radgro/projects/2023-09_Yang_hsc/"
 knitr::opts_knit$set(root.dir = wd)
-setwd(wd)
+# setwd(wd)
 
 fonts <- list(
-  mono = "Verdana",
-  sans = "Verdana"
+  mono = "Lato",
+  sans = "Lato"
 )
 
 # set svglite as a default for all the plots
 # knitr::opts_chunk$set(knitr.chunk.dev = 'svglite')
 # knitr::opts_chunk$set(dev = 'svglite', system_fonts = fonts)
 knitr::opts_chunk$set(dev = 'svglite', dev.args = list(system_fonts = fonts),
-                      cache.path = "2024-01_integrative_analysis_sakurai_files/gfm", cache = F,
+                      cache.path = "/disk2/user/radgro/projects/2023-09_Yang_hsc/2024-01_integrative_analysis_sakurai_files/gfm", 
+                      cache = F,
                       cache.lazy = FALSE) # cache of a github_document doesn't work if the path to the gfm folder is not provided!!!
 
 # knitr::opts_chunk$set(cache.extra = 1) # RESETS CACHE
@@ -94,7 +95,7 @@ knitr::opts_chunk$set(dev = 'svglite', dev.args = list(system_fonts = fonts),
 
 ### Our HSCs
 ```{r, results='hide'}
-hsc_s <- LoadH5Seurat("../data/hsc_final.h5Seurat")
+hsc_s <- LoadH5Seurat("data/hsc_final.h5Seurat")
 ```
 
 ### Sakurai et al.
@@ -102,14 +103,14 @@ hsc_s <- LoadH5Seurat("../data/hsc_final.h5Seurat")
 Load the Seurat object with finalized analysis downloaded from https://ftp.ncbi.nlm.nih.gov/geo/series/GSE192nnn/GSE192519/suppl/GSE192519%5FIntegrated%5FhHSC%2Erds%2Egz.
 
 ```{r load sakurai et al. R data, cache = F}
-sakurai_s <- readRDS("data/GSE192519_Integrated_hHSC.rds")
+sakurai_s <- readRDS("2024-01_integrative_analysis_sakurai/data/GSE192519_Integrated_hHSC.rds")
 ```
 
 
 ```{r load sakurai et al. - initial data after merge, cache = F, include=F, eval=F}
-sakurai <- ReadMtx("data/soluplus_mtx/GSM5750534_Soluplus_matrix.mtx.gz",
-                   "data/soluplus_mtx/GSM5750534_Soluplus_barcodes.tsv.gz",
-                   "data/soluplus_mtx/GSM5750534_Soluplus_features.tsv.gz",
+sakurai <- ReadMtx("2024-01_integrative_analysis_sakurai/data/soluplus_mtx/GSM5750534_Soluplus_matrix.mtx.gz",
+                   "2024-01_integrative_analysis_sakurai/data/soluplus_mtx/GSM5750534_Soluplus_barcodes.tsv.gz",
+                   "2024-01_integrative_analysis_sakurai/data/soluplus_mtx/GSM5750534_Soluplus_features.tsv.gz",
                    feature.column = 1)
 ```
 
@@ -155,7 +156,7 @@ FeatureScatter(sakurai_s, "nCount_RNA", "nFeature_RNA", pt.size = 1, plot.cor = 
 ```
 
 
-``` {r most_expressed, fig.width = 7.5, fig.height = 5}
+``` {r most_expressed, fig.width = 7.5, fig.height = 5, cache = T}
 counts_cells <- sakurai_s@assays$RNA@counts
 counts_cells <- Matrix::t(Matrix::t(counts_cells)/Matrix::colSums(counts_cells)) * 100
 
@@ -177,7 +178,7 @@ DimPlot(sakurai_s, label = T)
 ## Removal of genes not present in the 10X panel used with the initial dataset - sakurai
 
 ```{r remove_not_10X, cache=F}
-panel_10x <- fread("../data/gene_list_10X_panel.txt", header = F)
+panel_10x <- fread("data/gene_list_10X_panel.txt", header = F)
 counts_sakurai <- GetAssayData(sakurai_s, assay = "RNA") # get the matrix from the assay data
 # get the indices of genes present in the 10X panel
 in_panel_10x <- which(rownames(sakurai_s@assays$RNA) %in% panel_10x[, V1])
@@ -199,7 +200,7 @@ length(which(rownames(sakurai_s@assays$RNA) %in% panel_10x[, V1]))
 
 ### Clustering analysis after removing genes out of the 10X panel
 
-```{r pca_sakurai_after_integration, warning = F, message = F}
+```{r pca_sakurai_after_gene_removal, warning = F, message = F, cache = T}
 sakurai_s <- SCTransform(sakurai_s, vst.flavor = "v2", verbose = FALSE) %>%
   RunPCA(npcs = 30, verbose = FALSE) %>%
   RunUMAP(reduction = "pca", dims = 1:30, verbose = FALSE)
@@ -207,14 +208,14 @@ sakurai_s <- SCTransform(sakurai_s, vst.flavor = "v2", verbose = FALSE) %>%
 
 
 **Removing of genes resulted in mapping of negligibly worse resolution.**
-```{r umap_1_sakurai_after_integration}
+```{r umap_1_sakurai_after_gene_removal}
 DimPlot(sakurai_s, label = T)
 ```
 
 
 ## Integration
 
-```{r split and integrate patient single-cell with sakurai et al. data, cache = T, results = 'hide', message = F, error = F, warning = F}
+```{r integrate donor single-cell with sakurai et al. data, cache = T, results='asis', message = F, error = F, warning = F}
 integration_list <- list(sakurai_s, hsc_s)
 
 features <- SelectIntegrationFeatures(object.list = integration_list, nfeatures = 3000)
@@ -245,10 +246,6 @@ ggarrange(p1, p2, ncol = 1)
 
 ### Dim Reduc
 
-```{r}
-ElbowPlot(hsc_sakurai, ndims = 30)
-```
-
 ```{r, cache = T, results = 'hide', message = F, error = F, warning = F}
 DefaultAssay(hsc_sakurai) <- "integrated"
 
@@ -261,6 +258,10 @@ hsc_sakurai <-  ScaleData(hsc_sakurai) %>%
   
 ```
 
+```{r}
+ElbowPlot(hsc_sakurai, ndims = 30)
+```
+
 #### UMAP
 ```{r, cache = F, fig.width= 20, fig.height= 15, cache=F, eval = F, include=T}
 annot_hsc_sak <- as.data.table(hsc_sakurai@meta.data$old.ident)
@@ -268,7 +269,7 @@ annot_hsc_sak[V1 %in% NA, V1 := "Yang"]
 annot_hsc_sak[V1 %notin% "Yang", V1 := "Sakurai"]
 hsc_sakurai@meta.data$source <- annot_hsc_sak$V1
 
-cluster_hsc_sak <- as.data.table(hsc_sakurai@meta.data$seurat_clusters)
+cluster_hsc_sak <- as.data.table(hsc_sakurai@meta.data$seurat_clusters)c
 cluster_hsc_sak[V1 %in% NA, V1 := "sakurai"]
 hsc_sakurai@meta.data$seurat_clusters <- cluster_hsc_sak$V1
 
@@ -310,7 +311,7 @@ order <- levels(hsc_sakurai@meta.data$our_clusters)
 
 
 DimPlot(hsc_sakurai, group.by = c("our_clusters", "Sakurai_clusters"), pt.size = .4, order = order,
-        label = T, repel = T, label.size = 4, label.box = T,
+        label = T, repel = F, label.size = 4, label.box = T,
         cols = alpha(c25, .9))
         
 
@@ -318,7 +319,7 @@ DimPlot(hsc_sakurai, group.by = c("our_clusters", "Sakurai_clusters"), pt.size =
 
 
 ```{r}
-SessionInfo()
+sessionInfo()
 ```
 
 

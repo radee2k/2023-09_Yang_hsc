@@ -1,4 +1,4 @@
-2023-12_Yang_hscs_integrative_analysis_ranzoni
+2023-12\_Yang\_hscs\_integrative\_analysis\_ranzoni
 ================
 
 ## Setup
@@ -343,7 +343,7 @@ ggarrange(p1, p2, ncol = 1)
 
 ### Dim Reduc
 
-**Don’t run SCT after integration!!!**
+**Don’t run SCT after integration\!\!\!**
 
 ``` r
 DefaultAssay(hsc_ranzoni) <- "integrated"
@@ -356,23 +356,14 @@ hsc_ranzoni <-  ScaleData(hsc_ranzoni) %>%
   RunUMAP(reduction = "pca", dims = 1:30, verbose = FALSE)
 ```
 
-``` r
-p1 <- VlnPlot(hsc_ranzoni, features = c("nCount_RNA", "nFeature_RNA"), group.by = "orig.ident", 
-              log = T, pt.size = 0)
-p2 <- VlnPlot(hsc_ranzoni, features = c("nCount_SCT", "nFeature_SCT"), group.by = "orig.ident", pt.size = 0)
-
-ggarrange(p1, p2, ncol = 1)
-```
-
-![](2023-12_Yang_hsc_integrative_analysis_ranzoni_files/figure-gfm/unnamed-chunk-8-1.svg)<!-- -->
-
 #### UMAP
 
 **DIfferent color scheme**
 
 ``` r
 c25 <- c(
-  "dodgerblue2", "#E31A1C", # red
+  "dodgerblue2",
+  "#E31A1C", # red
   "green4",
   "#6A3D9A", # purple
   "#FF7F00", # orange
@@ -380,12 +371,13 @@ c25 <- c(
   "skyblue2", "#FB9A99", # lt pink
   "palegreen2",
   "#CAB2D6", # lt purple
-  "#FDBF6F", # lt orange
+  "#FDBF6F",  # lt orange
   "gray70", "khaki2",
   "maroon", "orchid1", "deeppink1", "blue1", "steelblue4",
   "darkturquoise", "green1", "yellow4", "yellow3",
-  "darkorange4", "brown"
+  "darkorange4", "brown", "darkorange"
 )
+
 
 
 # Annotate Yang's HSCs
@@ -398,15 +390,77 @@ cluster_hsc_ranz[V1 %in% NA, V1 := "Ranzoni"]
 hsc_ranzoni@meta.data$seurat_clusters <- cluster_hsc_ranz$V1
 
 
-order <- unique(hsc_ranzoni@meta.data$annotation)
+order_plot <- unique(hsc_ranzoni@meta.data$seurat_clusters)
+order_plot <- order_plot[order(order_plot)]
+
+order_plot <- append(order_plot[1:10], "Ranzoni")
 
 
-DimPlot(hsc_ranzoni, group.by = c("seurat_clusters", "annotation"), pt.size = 2, order = order, 
+
+DimPlot(hsc_ranzoni, group.by = c("seurat_clusters", "annotation"), pt.size = 2, order = order_plot, 
         label = T, repel = T, label.size = 5, label.box = T,
         cols = c25) 
 ```
 
-![](2023-12_Yang_hsc_integrative_analysis_ranzoni_files/figure-gfm/unnamed-chunk-10-1.svg)<!-- -->
+![](2023-12_Yang_hsc_integrative_analysis_ranzoni_files/figure-gfm/unnamed-chunk-9-1.svg)<!-- -->
+
+#### Save the processed dataset
+
+``` r
+SaveH5Seurat(hsc_ranzoni, filename = "data/hsc_ranzoni.h5Seurat", overwrite = TRUE)
+```
+
+    ## Warning: Overwriting previous file data/hsc_ranzoni.h5Seurat
+
+    ## Creating h5Seurat file for version 3.1.5.9900
+
+    ## Adding counts for RNA
+
+    ## Adding data for RNA
+
+    ## No variable features found for RNA
+
+    ## No feature-level metadata found for RNA
+
+    ## Adding counts for SCT
+
+    ## Adding data for SCT
+
+    ## Adding scale.data for SCT
+
+    ## No variable features found for SCT
+
+    ## No feature-level metadata found for SCT
+
+    ## Writing out SCTModel.list for SCT
+
+    ## Adding data for integrated
+
+    ## Adding scale.data for integrated
+
+    ## Adding variable features for integrated
+
+    ## No feature-level metadata found for integrated
+
+    ## Adding cell embeddings for pca
+
+    ## Adding loadings for pca
+
+    ## No projected loadings for pca
+
+    ## Adding standard deviations for pca
+
+    ## No JackStraw data for pca
+
+    ## Adding cell embeddings for umap
+
+    ## No loadings for umap
+
+    ## No projected loadings for umap
+
+    ## No standard deviations for umap
+
+    ## No JackStraw data for umap
 
 ##### Validation of some of the overlaps
 

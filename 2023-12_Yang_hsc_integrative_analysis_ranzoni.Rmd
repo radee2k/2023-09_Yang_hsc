@@ -351,7 +351,8 @@ DimPlot(hsc_ranzoni, group.by = c("seurat_clusters", "annotation"), pt.size = 2,
 **DIfferent color scheme**
 ```{r, cache = F, fig.width= 20, fig.height= 15, cache=F}
 c25 <- c(
-  "dodgerblue2", "#E31A1C", # red
+  "dodgerblue2",
+  "#E31A1C", # red
   "green4",
   "#6A3D9A", # purple
   "#FF7F00", # orange
@@ -359,12 +360,13 @@ c25 <- c(
   "skyblue2", "#FB9A99", # lt pink
   "palegreen2",
   "#CAB2D6", # lt purple
-  "#FDBF6F", # lt orange
+  "#FDBF6F",  # lt orange
   "gray70", "khaki2",
   "maroon", "orchid1", "deeppink1", "blue1", "steelblue4",
   "darkturquoise", "green1", "yellow4", "yellow3",
-  "darkorange4", "brown"
+  "darkorange4", "brown", "darkorange"
 )
+
 
 
 # Annotate Yang's HSCs
@@ -377,13 +379,24 @@ cluster_hsc_ranz[V1 %in% NA, V1 := "Ranzoni"]
 hsc_ranzoni@meta.data$seurat_clusters <- cluster_hsc_ranz$V1
 
 
-order <- unique(hsc_ranzoni@meta.data$annotation)
+order_plot <- unique(hsc_ranzoni@meta.data$seurat_clusters)
+order_plot <- order_plot[order(order_plot)]
+
+order_plot <- append(order_plot[1:10], "Ranzoni")
 
 
-DimPlot(hsc_ranzoni, group.by = c("seurat_clusters", "annotation"), pt.size = 2, order = order, 
+
+DimPlot(hsc_ranzoni, group.by = c("seurat_clusters", "annotation"), pt.size = 2, order = order_plot, 
         label = T, repel = T, label.size = 5, label.box = T,
         cols = c25) 
 ```
+
+#### Save the processed dataset
+
+```{r}
+SaveH5Seurat(hsc_ranzoni, filename = "data/hsc_ranzoni.h5Seurat", overwrite = TRUE)
+```
+
 
 ##### Validation of some of the overlaps
 
