@@ -209,7 +209,7 @@ boxplot(most_expr_counts_cells, cex = 1, las = 1, xlab = "% total count per cell
 ```{r, cache = T}
 hsc_bm <- SCTransform(hsc_bm, vst.flavor = "v2", verbose = FALSE) %>%
   RunPCA(npcs = 30, verbose = FALSE) %>%
-  RunUMAP(reduction = "pca", dims = 1:30, verbose = FALSE)
+  RunUMAP(reduction = "pca", dims = 1:15, verbose = FALSE)
 ```
 #### Elbow plot
 ```{r}
@@ -282,5 +282,6 @@ FeaturePlot(hsc_bm, features = c("CD34", "ITGA2", int_goi[15:27]))
 
 ## Save the processed BM dataset
 ```{r save the data}
-SaveH5Seurat(hsc_bm, filename = "hsc_bm_final.h5Seurat", overwrite = TRUE)
+hsc_bm[["RNA"]] <- as(object = hsc_bm[["RNA"]], Class = "Assay")
+SaveH5Seurat(hsc_bm, filename = "hsc_bm_qc.h5Seurat", overwrite = TRUE)
 ```
